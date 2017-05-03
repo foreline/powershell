@@ -24,12 +24,17 @@ Get-Mailbox -database "DB01" | FT DisplayName, TotalItemSize, IssueWarningQuota,
 
 ################## Работа с базами данных ##################
 
+Get-MailboxDatabase
+
 Get-MailboxDatabase DB01 -Status | FT Name,DatabaseSize,AvailableNewMailboxSpace -Auto
 
 Get-MailboxDatabase DB01 | FL Name, *Path*
 
 # Перемещение базы данных
 Move-DatabasePath DB01 -EdbFilePath "D:\DB01\DB01.edb" -LogFolderPath "F:\DB01"
+
+# Создание базы данных для восстановления
+New-MailboxDatabase -Recovery:$true -Name "RECOVERY" -Server "Exchange" -EdbFilePath "E:\RECOVERY\RECOVERY.edb" -LogFolderPath "F:\RECOVERY"
 
 ################## DAG / Копии баз данных (Группа высокой доступности) ##################
 
