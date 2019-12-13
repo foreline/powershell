@@ -113,3 +113,53 @@ Get-Queue
 Get-Message -Queue "Unreachable”
 Get-Message -Queue “Remote Delivery Queue”
 
+################## Восстановление почтовых ящиков ##################
+
+New-MailboxRepairRequest -Mailbox mail@contoso.com
+
+Get-MailboxDatabase | Get-MailboxRepairRequest | FT Identity
+
+Get-MailboxRepairRequest -Mailbox "mail@contoso.com" | FL
+
+Get-MailboxStatistics -Identity "mail@contoso.com"
+
+############# MessageTracking/Отслеживание сообщений ##############
+
+Get-MessageTrackingLog | Where-Object {$_.Recipients -like "mail@contoso.com"} | Sort-Object Timestamp -Descending | FT Timestamp, ServerHostname, Sender, Recipients, MessageSubject
+
+Get-MessageTrackingLog | Sort-Object Timestamp -Descending | FT Timestamp, ServerHostname, Sender, Recipients, MessageSubject
+
+Get-MessageTrackingLog -Server MAIL01 -Start "27.09.2017 09:00:00" -End "27.09.2017 18:00:00" -Sender "sender@mail.ru" | Sort-Object Timestamp -Descending | FT Timestamp, ServerHostname, Sender, Recipients, MessageSubject
+
+Get-MessageTrackingLog -Server MAIL01 -Start "27.09.2017 09:00:00" -End "27.09.2017 10:30:00" -ResultSize 10000 | Where {$_.EventId -like "FAIL" -and $_.Recipients -notlike "HealthMailbox*"} | FT EventID, Source, Sender, Recipients, RecipientStatus -AutoSize
+
+Get-MessageTrackingLog -Server MAIL01 -Start "27.09.2017 09:00:00" -End "27.09.2017 18:00:00" -ResultSize 50000 | Sort-Object Timestamp | Where {$_.Recipients -like "mail@contoso.com" -and $_.MessageSubject -like "*текст из темы*"} | FT EventID, Timestamp, Source, Sender, Recipients, MessageSubject, RecipientStatus -AutoSize
+
+Get-MessageTrackingLog -EventID FAIL | where {$_.RecipientStatus -like "*SendSizeLimit*"}
+
+Get-MessageTrackingLog -Server MAIL01 -Start "28.09.2017 09:00:00" -End "28.09.2017 15:40:00" -ResultSize 100000 | Where { $_.Recipients -like "mail@contoso.com" -and $_.Sender -like "sender@mail.ru" }
+Get-MessageTrackingLog -Server MAIL02 -Start "28.09.2017 09:00:00" -End "28.09.2017 15:40:00" -ResultSize 100000 | Where { $_.Recipients -like "mail@contoso.com" }
+
+############### Настройка коннекторов ##################
+
+Get-ReceiveConnector | FL name, maxmessagesize
+Get-Mailbox -Identity "mail@contoso.com" | FL maxreceivesize
+Get-AdSiteLink | ft Name, MaxMessageSize
+
+Get-TransportConfig | ft maxsendsize, maxreceivesize
+#Set-TransportConfig -MaxSendSize 50MB -MaxReceiveSize 100MB
+
+###### Удаление писем из локальных ящиков ########
+
+#Get-Mailbox -Server Server1 -ResultSize Unlimited | Export-Mailbox -SubjectKeywords "Поисковая фраза" -IncludeFolders "\Inbox" -StartDate "10/11/2017" -EndDate "10/12/2017" -DeleteContent -TargetMailbox MyBackupMailbox -TargetFolder DeleteMsgs -Confirm:$false
+
+#Get-Mailbox -ResultSize Unlimited | Export-Mailbox -SubjectKeywords "поисковая фраза" -StartDate "10/11/2017" -EndDate "10/12/2017" -DeleteContent
+
+Search-Mailbox -Identity domain\user -SearchQuery 'Subject:"поисковая фраза"' -DeleteContent
+
+####### Просмотр корзины #######
+
+# Результаты поиска скопируются в заранее созданную папку в указанный ящик
+Search-Mailbox -Identity domain\user1 -SearchDumpsterOnly -TargetMailbox domain\user -TargetFolder Recover
+
+##################
